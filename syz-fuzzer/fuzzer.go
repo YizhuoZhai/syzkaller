@@ -246,7 +246,17 @@ func main() {
 	for _, fname := range res.FList {
 		funcMap[fname] = true
 	}
-
+	str := "raw_read_seqcount_begin"
+	if funcMap[str] {
+		fmt.Println("key found")
+	}
+	
+	str1 := "random_funcs"
+	if (funcMap[str1]) {
+		fmt.Println("key2 found")
+	} else {
+		fmt.Println("key2 not found")
+	}
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
 	fuzzer := &Fuzzer{

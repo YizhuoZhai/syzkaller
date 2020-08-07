@@ -343,7 +343,7 @@ func (serv *RPCServer) GetBugFuncs (a *int, res *rpctype.FuncList) error {
 	if err != nil {
 		log.Logf(0, "Fail to open the BUGFile.\n", err)
 	}
-	
+
 	rder := bufio.NewReader(f)
 	for {
 		line, err := rder.ReadString('\n')
