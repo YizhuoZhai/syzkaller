@@ -321,7 +321,7 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 		log.Logf(0, "pc = %d", pc)
 		var newpc uint64 = (0xffffffff00000000 | uint64(pc))
 		pcstr := "0x" + strconv.FormatUint(newpc, 16)
-		//log.Logf(0, "yizhuo pcstr:%s", pcstr)
+		log.Logf(0, "yizhuo pcstr:%s", pcstr)
 		addr2line := "addr2line"
 		cmd := exec.Command(addr2line, "-afi", "-e", "/home/lll-56/vmlinux", pcstr)
 		output, err := cmd.CombinedOutput()
@@ -329,7 +329,7 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 			log.Logf(0, "cmd.Run() failed with ", err)
 			return err
 		}
-		//log.Logf(0, "yizhuo getFuncName from rpc:", string(output))
+		log.Logf(0, "yizhuo getFuncName from rpc:", string(output))
 		res.Fnames = append(res.Fnames, string(output))
 	}
 	return nil
@@ -354,6 +354,6 @@ func (serv *RPCServer) GetBugFuncs (pcs *rpctype.CoverAddr, res *rpctype.FuncLis
 		}
 		res.FList = append(res.FList, line)
 	}
-	log.Logf(0, "res.FList: ", res.FList)
+	//log.Logf(0, "res.FList: ", res.FList)
 	return nil
 }
