@@ -66,6 +66,7 @@ func (proc *Proc) loop() {
 		// because fallback signal is weak.
 		generatePeriod = 2
 	}
+	//yizhuo:
 	for i := 0; ; i++ {
 		item := proc.fuzzer.workQueue.dequeue()
 		if item != nil {
@@ -73,7 +74,8 @@ func (proc *Proc) loop() {
 			case *WorkTriage:
 				proc.triageInput(item)
 			case *WorkCandidate:
-				proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
+				proc.execute(proc.execOptsCover, item.p, item.flags, StatCandidate)
+				//proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
 			case *WorkSmash:
 				proc.smashInput(item)
 			default:
@@ -88,13 +90,15 @@ func (proc *Proc) loop() {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
 			log.Logf(1, "#%v: generated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
+			proc.execute(proc.execOptsCover, p, ProgNormal, StatGenerate)
+			//proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
 			log.Logf(1, "#%v: mutated", proc.pid)
-			proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
+			proc.execute(proc.execOptsCover, p, ProgNormal, StatFuzz)
+			//proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
 		}
 	}
 }
