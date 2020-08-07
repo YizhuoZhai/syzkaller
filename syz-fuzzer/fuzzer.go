@@ -517,6 +517,7 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 
 func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool) {
 	log.Logf(0, "Inside checkNewSignal:\n")
+	log.Logf(0, "coverFlag: ", info.Extra.Flags)
 	log.Logf(0, "Coverage: ", info.Extra.Cover)
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
