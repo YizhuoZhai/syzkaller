@@ -8,6 +8,7 @@ package symbolizer
 import (
 	"bufio"
 	"fmt"
+	"github.com/google/syzkaller/pkg/log"
 	"io"
 	"os/exec"
 	"strconv"
@@ -71,6 +72,7 @@ func (s *Symbolizer) getSubprocess(bin string) (*subprocess, error) {
 	if s.target.Triple != "" {
 		addr2line = s.target.Triple + "-" + addr2line
 	}
+	log.Logf(0, "symbolizer addr2line, addr2line = %s, bin = %s", addr2line, bin)
 	cmd := osutil.Command(addr2line, "-afi", "-e", bin)
 	stdin, err := cmd.StdinPipe()
 	if err != nil {

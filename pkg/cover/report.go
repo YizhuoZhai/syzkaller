@@ -7,6 +7,7 @@ import (
 	"bufio"
 	"bytes"
 	"fmt"
+	"github.com/google/syzkaller/pkg/log"
 	"html"
 	"html/template"
 	"io"
@@ -341,6 +342,7 @@ func readSymbols(target *targets.Target, obj string) ([]symbol, error) {
 // objdumpAndSymbolize collects list of PCs of __sanitizer_cov_trace_pc calls
 // in the kernel and symbolizes them.
 func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame, error) {
+	log.Logf(0, "Inside objdumpAndSumbolize:\n")
 	errc := make(chan error, 1)
 	pcchan := make(chan []uint64, 10)
 	var frames []symbolizer.Frame
@@ -384,6 +386,7 @@ func objdumpAndSymbolize(target *targets.Target, obj string) ([]symbolizer.Frame
 	npcs := 0
 	for s.Scan() {
 		if pc := parseLine(callInsns, traceFuncs, s.Bytes()); pc != 0 {
+			log.Logf(0, "parseLine pc = ", pc)
 			npcs++
 			pcs = append(pcs, pc)
 			if len(pcs) == 100 {
