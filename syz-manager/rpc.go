@@ -334,7 +334,7 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 	}
 	return nil
 }
-func (serv *RPCServer) GetBugFuncs (a *int, res *rpctype.FuncList) error {
+func (serv *RPCServer) GetBugFuncs (pcs *rpctype.CoverAddr, res *rpctype.FuncList) error {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 

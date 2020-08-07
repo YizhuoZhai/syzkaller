@@ -237,9 +237,11 @@ func main() {
 
 	var funcMap map[string]bool
 	funcMap = make(map[string]bool)
+
+	dummyarg := &rpctype.CoverAddr{}
 	res := &rpctype.FuncList{}
 	log.Logf(0, "Yizhuo rpctype.FuncList\n")
-	if err := manager.Call("Manager.GetBugFuncs", nil, res); err != nil {
+	if err := manager.Call("Manager.GetBugFuncs", dummyarg, res); err != nil {
 		log.Logf(0, "Manager.GetBugFuncs call failed: %v", err)
 	}
 	log.Logf(0, "Manager.GetBugFuncs\n")
