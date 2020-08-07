@@ -238,12 +238,13 @@ func main() {
 	var funcMap map[string]bool
 	funcMap = make(map[string]bool)
 	res := &rpctype.FuncList{}
-/*
+	log.Logf(0, "Yizhuo rpctype.FuncList\n")
 	if err := manager.Call("Manager.GetBugFuncs", nil, res); err != nil {
-		log.Fatalf("Manager.Check call failed: %v", err)
+		log.Logf(0, "Manager.GetBugFuncs call failed: %v", err)
 	}
-*/
+	log.Logf(0, "Manager.GetBugFuncs\n")
 	for _, fname := range res.FList {
+		fmt.Println(fname)
 		funcMap[fname] = true
 	}
 	str := "raw_read_seqcount_begin"

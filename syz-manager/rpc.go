@@ -338,6 +338,7 @@ func (serv *RPCServer) GetBugFuncs (a *int, res *rpctype.FuncList) error {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
+	log.Logf(0, "Inside Yizhuo getBugFuncs\n")
 	f, err := os.Open("/home/lll-56/bug.funcs")
 	defer f.Close()
 	if err != nil {
@@ -353,5 +354,6 @@ func (serv *RPCServer) GetBugFuncs (a *int, res *rpctype.FuncList) error {
 		}
 		res.FList = append(res.FList, line)
 	}
+	log.Logf(0, "res.FList: ", res.FList)
 	return nil
 }
