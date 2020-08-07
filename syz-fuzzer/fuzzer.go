@@ -554,7 +554,7 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 
 	if !interestInput {
 		log.Logf(0, "Do not have the interesting input\n")
-		return false
+		//return false
 	} else {
 		log.Logf(0, "Has the interesting input\n")
 		return true
