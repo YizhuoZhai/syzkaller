@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"math/rand"
 	"net"
+	"os/exec"
+	"strconv"
 	"sync"
 	"time"
 
@@ -304,5 +306,27 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 	}
 	log.Logf(4, "poll from %v: candidates=%v inputs=%v maxsignal=%v",
 		a.Name, len(r.Candidates), len(r.NewInputs), len(r.MaxSignal.Elems))
+	return nil
+}
+//yizhuo:
+func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFuncs) error {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+	log.Logf(0, "Inside yizhuo getFuncName")
+	for _, pc := range pcs.Pcs {
+		log.Logf(0, "pc = %d", pc)
+		var newpc uint64 = (0xffffffff00000000 | uint64(pc))
+		pcstr := "0x" + strconv.FormatUint(newpc, 16)
+		//log.Logf(0, "yizhuo pcstr:%s", pcstr)
+		addr2line := "addr2line"
+		cmd := exec.Command(addr2line, "-afi", "-e", "/home/lll-56/vmlinux", pcstr)
+		output, err := cmd.CombinedOutput()
+		if err != nil {
+			log.Logf(0, "cmd.Run() failed with ", err)
+			return err
+		}
+		//log.Logf(0, "yizhuo getFuncName from rpc:", string(output))
+		res.Fnames = append(res.Fnames, string(output))
+	}
 	return nil
 }

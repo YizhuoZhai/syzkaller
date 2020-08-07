@@ -60,6 +60,8 @@ type Fuzzer struct {
 	newSignal    signal.Signal // diff of maxSignal since last sync with master
 
 	logMu sync.Mutex
+	//yizhuo:
+	whiteFuncMap map[string]bool
 }
 
 type FuzzerSnapshot struct {
@@ -232,6 +234,12 @@ func main() {
 		return
 	}
 
+
+	var funcMap map[string]bool
+	funcMap = make(map[string]bool)
+
+	
+
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
 	fuzzer := &Fuzzer{
@@ -246,6 +254,8 @@ func main() {
 		faultInjectionEnabled:    r.CheckResult.Features[host.FeatureFault].Enabled,
 		comparisonTracingEnabled: r.CheckResult.Features[host.FeatureComparisons].Enabled,
 		corpusHashes:             make(map[hash.Sig]struct{}),
+		//yizhuo:
+		whiteFuncMap:		   funcMap,
 	}
 	gateCallback := fuzzer.useBugFrames(r, *flagProcs)
 	fuzzer.gate = ipc.NewGate(2**flagProcs, gateCallback)
@@ -509,6 +519,37 @@ func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []
 
 func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call int) bool {
 	diff := fuzzer.maxSignal.DiffRaw(info.Signal, signalPrio(p, info, call))
+
+	//yizhuo:
+	interestInput := false
+	//log.Logf(0, "yizhuo check NewCallSignal\n")
+	//fuzzer.manager.Call("Manager.Test", 0)
+
+	r := &rpctype.CoverFuncs{}
+	a := &rpctype.CoverAddr{
+		Pcs: info.Signal,
+	}
+
+	if err := fuzzer.manager.Call("Manager.GetFuncName", a, r); err != nil {
+		log.Logf(0, "Fail to get the function name, err code = ", err)
+	}
+
+	for _, fname := range r.Fnames {
+		log.Logf(0, "funcName = %s", fname)
+		if fuzzer.whiteFuncMap[fname] {
+			interestInput = true
+			break
+		}
+	}
+
+	if !interestInput {
+		log.Logf(0, "Do not have the interesting input\n")
+		return false
+	} else {
+		log.Logf(0, "Has the interesting input\n")
+		return true
+	}
+
 	if diff.Empty() {
 		return false
 	}

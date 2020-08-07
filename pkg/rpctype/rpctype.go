@@ -128,3 +128,10 @@ type RunTestDoneArgs struct {
 	Info   []*ipc.ProgInfo
 	Error  string
 }
+
+type CoverAddr struct {
+	Pcs []uint32
+}
+type CoverFuncs struct{
+	Fnames []string
+}
