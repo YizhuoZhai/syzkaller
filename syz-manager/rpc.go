@@ -4,11 +4,15 @@
 package main
 
 import (
+	"bufio"
 	"fmt"
+	"io"
 	"math/rand"
 	"net"
+	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 	"sync"
 	"time"
 
@@ -327,6 +331,27 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 		}
 		//log.Logf(0, "yizhuo getFuncName from rpc:", string(output))
 		res.Fnames = append(res.Fnames, string(output))
+	}
+	return nil
+}
+func (serv *RPCServer) GetBugFuncs (a *int, res *rpctype.FuncList) error {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+
+	f, err := os.Open("/home/lll-56/bug.funcs")
+	defer f.Close()
+	if err != nil {
+		log.Logf(0, "Fail to open the BUGFile.\n", err)
+	}
+	
+	rder := bufio.NewReader(f)
+	for {
+		line, err := rder.ReadString('\n')
+		line = strings.TrimSpace(line)
+		if err == io.EOF {
+			break
+		}
+		res.FList = append(res.FList, line)
 	}
 	return nil
 }

@@ -135,3 +135,6 @@ type CoverAddr struct {
 type CoverFuncs struct{
 	Fnames []string
 }
+type FuncList struct {
+	FList []string
+}

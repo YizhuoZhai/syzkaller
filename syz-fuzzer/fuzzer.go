@@ -237,8 +237,15 @@ func main() {
 
 	var funcMap map[string]bool
 	funcMap = make(map[string]bool)
+	res := &rpctype.FuncList{}
 
-	
+	if err := manager.Call("Manager.GetBugFuncs", nil, res); err != nil {
+		log.Fatalf("Manager.Check call failed: %v", err)
+	}
+
+	for _, fname := range res.FList {
+		funcMap[fname] = true
+	}
 
 	needPoll := make(chan struct{}, 1)
 	needPoll <- struct{}{}
