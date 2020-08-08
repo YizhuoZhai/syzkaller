@@ -5,6 +5,7 @@ package ipc
 
 import (
 	"fmt"
+	"github.com/google/syzkaller/pkg/log"
 	"io"
 	"io/ioutil"
 	"os"
@@ -713,6 +714,7 @@ func (c *command) wait() error {
 }
 
 func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
+	log.Logf(0, "Inside exec, opts.Flags = %d", opts.Flags)
 	req := &executeReq{
 		magic:     inMagic,
 		envFlags:  uint64(c.config.Flags),

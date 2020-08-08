@@ -74,6 +74,7 @@ func (proc *Proc) loop() {
 			case *WorkTriage:
 				proc.triageInput(item)
 			case *WorkCandidate:
+				log.Logf(0, "work candidate: ", item.p, item.flags)
 				proc.execute(proc.execOptsCover, item.p, item.flags, StatCandidate)
 				//proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
 			case *WorkSmash:
@@ -89,14 +90,14 @@ func (proc *Proc) loop() {
 		if len(fuzzerSnapshot.corpus) == 0 || i%generatePeriod == 0 {
 			// Generate a new prog.
 			p := proc.fuzzer.target.Generate(proc.rnd, prog.RecommendedCalls, ct)
-			log.Logf(1, "#%v: generated", proc.pid)
+			log.Logf(0, "#%v: generated", proc.pid)
 			proc.execute(proc.execOptsCover, p, ProgNormal, StatGenerate)
 			//proc.execute(proc.execOpts, p, ProgNormal, StatGenerate)
 		} else {
 			// Mutate an existing prog.
 			p := fuzzerSnapshot.chooseProgram(proc.rnd).Clone()
 			p.Mutate(proc.rnd, prog.RecommendedCalls, ct, fuzzerSnapshot.corpus)
-			log.Logf(1, "#%v: mutated", proc.pid)
+			log.Logf(0, "#%v: mutated", proc.pid)
 			proc.execute(proc.execOptsCover, p, ProgNormal, StatFuzz)
 			//proc.execute(proc.execOpts, p, ProgNormal, StatFuzz)
 		}
@@ -252,7 +253,10 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 }
 
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
+	log.Logf(0, "Inside execute, flags = %d\n", flags)
 	info := proc.executeRaw(execOpts, p, stat)
+
+
 	calls, extra := proc.fuzzer.checkNewSignal(p, info)
 	for _, callIndex := range calls {
 		proc.enqueueCallTriage(p, flags, callIndex, info.Calls[callIndex])
