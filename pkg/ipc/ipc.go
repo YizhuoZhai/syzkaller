@@ -250,6 +250,7 @@ var rateLimit = time.NewTicker(1 * time.Second)
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
+	log.Logf(0, "Inside Exec, p: ", p)
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
@@ -288,7 +289,11 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	}
 
 	info, err0 = env.parseOutput(p)
+	log.Logf(0, "Info.coverage inside Exec1:", info.Extra.Cover)
+
+
 	if info != nil && env.config.Flags&FlagSignal == 0 {
+		log.Logf(0, "Call addFallbackSignal\n")
 		addFallbackSignal(p, info)
 	}
 	if !env.config.UseForkServer {
