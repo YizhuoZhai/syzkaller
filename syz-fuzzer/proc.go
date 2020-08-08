@@ -278,6 +278,7 @@ func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int
 }
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
+	log.Logf(0, "Inside executeRaw, opts.Flags = %d， ipc.FlagDedupCover = %d\n", opts.Flags, ipc.FlagDedupCover)
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		log.Fatalf("dedup cover is not enabled")
 	}
