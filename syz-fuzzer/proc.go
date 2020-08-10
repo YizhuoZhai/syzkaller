@@ -251,11 +251,14 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 		proc.execute(proc.execOpts, p, ProgNormal, StatHint)
 	})
 }
-
+//Function exectute: syz-fuzzer transfer the input to syz-executor and execute the program
+//execOpts:
+//p:
+//flags:
+//stat:
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
 	log.Logf(0, "Inside execute, flags = %d\n", flags)
 	info := proc.executeRaw(execOpts, p, stat)
-
 
 	calls, extra := proc.fuzzer.checkNewSignal(p, info)
 	for _, callIndex := range calls {

@@ -234,7 +234,7 @@ func main() {
 		return
 	}
 
-
+	//yizhuo: get the function list
 	var funcMap map[string]bool
 	funcMap = make(map[string]bool)
 
