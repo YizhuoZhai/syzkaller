@@ -259,6 +259,7 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
 	log.Logf(0, "Inside execute, flags = %d\n", flags)
 	info := proc.executeRaw(execOpts, p, stat)
+	log.Logf(0, "Info.Extra.Cover = ", info.Extra.Cover)
 
 	calls, extra := proc.fuzzer.checkNewSignal(p, info)
 	for _, callIndex := range calls {
@@ -304,6 +305,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	for try := 0; ; try++ {
 		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
 		output, info, hanged, err := proc.env.Exec(opts, p)
+		log.Logf (0, "ExecuteRaw Info Cover: ", info.Extra.Cover)
 		if err != nil {
 			if try > 10 {
 				log.Fatalf("executor %v failed %v times:\n%v", proc.pid, try, err)
@@ -314,6 +316,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 			continue
 		}
 		log.Logf(2, "result hanged=%v: %s", hanged, output)
+
 		return info
 	}
 }

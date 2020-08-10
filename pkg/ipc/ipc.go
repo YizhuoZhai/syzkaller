@@ -281,6 +281,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 			return
 		}
 	}
+	log.Logf(0, "Inside Exec, opts = ", opts)
 	output, hanged, err0 = env.cmd.exec(opts, progData)
 	if err0 != nil {
 		env.cmd.close()
