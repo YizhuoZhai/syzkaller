@@ -374,6 +374,7 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		inf.Comps = comps
 	}
 	if len(extraParts) == 0 {
+		log.Logf(0, "Inside parseOutput,ExtraParts = 0")
 		return info, nil
 	}
 	info.Extra = convertExtra(extraParts)
