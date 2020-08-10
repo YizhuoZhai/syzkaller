@@ -294,8 +294,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	}
 	if opts.Flags&ipc.FlagCollectCover == 0 {
 		log.Logf(0, "FlagCollectCoveryz = =0")
-	}
-	else {
+	} else{
 		log.Logf(0, "FlagCollectCoveryz is enabled")
 	}
 	for _, call := range p.Calls {
