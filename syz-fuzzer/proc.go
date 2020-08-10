@@ -312,7 +312,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	for try := 0; ; try++ {
 		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
 		output, info, hanged, err := proc.env.Exec(opts, p)
-		log.Logf (0, "ExecuteRaw Info Cover: ", info.Extra.Cover)
+		log.Logf (0, "ExecuteRaw Info Cover: ", info.Calls)
 		if err != nil {
 			if try > 10 {
 				log.Fatalf("executor %v failed %v times:\n%v", proc.pid, try, err)

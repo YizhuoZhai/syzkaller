@@ -251,6 +251,7 @@ var rateLimit = time.NewTicker(1 * time.Second)
 // err0: failed to start the process or bug in executor itself.
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
 	log.Logf(0, "Inside Exec, p: ", p)
+
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
 	if err != nil {
