@@ -142,7 +142,7 @@ func main() {
 	)
 	flag.Parse()
 	outputType := parseOutputType(*flagOutput)
-	log.Logf(0, "fuzzer started")
+	log.Logf(1, "fuzzer started")
 
 	target, err := prog.GetTarget(*flagOS, *flagArch)
 	if err != nil {
@@ -150,7 +150,7 @@ func main() {
 	}
 
 	config, execOpts, err := ipcconfig.Default(target)
-	log.Logf(0, "DefaultConfig: ", config.Flags)
+	log.Logf(1, "DefaultConfig: ", config.Flags)
 
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
@@ -242,7 +242,7 @@ func main() {
 
 	dummyarg := &rpctype.CoverAddr{}
 	res := &rpctype.FuncList{}
-	log.Logf(0, "Yizhuo rpctype.FuncList\n")
+	log.Logf(1, "Yizhuo rpctype.FuncList\n")
 	if err := manager.Call("Manager.GetBugFuncs", dummyarg, res); err != nil {
 		log.Logf(0, "Manager.GetBugFuncs call failed: %v", err)
 	}
@@ -518,9 +518,6 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 }
 
 func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool) {
-	log.Logf(0, "Inside checkNewSignal:\n")
-	log.Logf(0, "coverFlag: ", info.Extra.Flags)
-	log.Logf(0, "Coverage: ", info.Calls)
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
 	for i, inf := range info.Calls {
@@ -538,7 +535,6 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	//yizhuo:
 	interestInput := false
 	//log.Logf(0, "yizhuo check NewCallSignal\n")
-	//fuzzer.manager.Call("Manager.Test", 0)
 
 	r := &rpctype.CoverFuncs{}
 	a := &rpctype.CoverAddr{
@@ -550,31 +546,29 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	}
 
 	for _, fname := range r.Fnames {
-		log.Logf(0, "funcName = %s", fname)
+		log.Logf(1, "funcName = %s", fname)
 		if fuzzer.whiteFuncMap[fname] {
 			interestInput = true
 			break
 		}
 	}
 
-	if !interestInput {
-		log.Logf(0, "Do not have the interesting input\n")
-		return false
-	} else {
+	if interestInput {
 		log.Logf(0, "Has the interesting input\n")
 		return true
+	} else {
+		log.Logf(0, "Do not have the interesting input\n")
+		if diff.Empty() {
+			return false
+		}
+		fuzzer.signalMu.RUnlock()
+		fuzzer.signalMu.Lock()
+		fuzzer.maxSignal.Merge(diff)
+		fuzzer.newSignal.Merge(diff)
+		fuzzer.signalMu.Unlock()
+		fuzzer.signalMu.RLock()
+		return true
 	}
-
-	if diff.Empty() {
-		return false
-	}
-	fuzzer.signalMu.RUnlock()
-	fuzzer.signalMu.Lock()
-	fuzzer.maxSignal.Merge(diff)
-	fuzzer.newSignal.Merge(diff)
-	fuzzer.signalMu.Unlock()
-	fuzzer.signalMu.RLock()
-	return true
 }
 
 func signalPrio(p *prog.Prog, info *ipc.CallInfo, call int) (prio uint8) {
