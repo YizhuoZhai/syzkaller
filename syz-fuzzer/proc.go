@@ -75,6 +75,8 @@ func (proc *Proc) loop() {
 				proc.triageInput(item)
 			case *WorkCandidate:
 				log.Logf(0, "work candidate: ", item.p, item.flags)
+				log.Logf(0, "proc.execOpts: ", proc.execOpts.Flags)
+				log.Logf(0, "execOptCover.flags: ", proc.execOptsCover.Flags)
 				proc.execute(proc.execOptsCover, item.p, item.flags, StatCandidate)
 				//proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
 			case *WorkSmash:
