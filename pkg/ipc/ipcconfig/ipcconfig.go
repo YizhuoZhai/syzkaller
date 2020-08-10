@@ -20,7 +20,8 @@ var (
 	flagSandbox  = flag.String("sandbox", "none", "sandbox for fuzzing (none/setuid/namespace/android)")
 	flagDebug    = flag.Bool("debug", false, "debug output from executor")
 	flagTimeout  = flag.Duration("timeout", 0, "execution timeout")
-)
+	flagExtraCover = flag.Bool("extra cover", true, "collect extra coverage")
+	)
 
 func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	c := &ipc.Config{
@@ -32,6 +33,9 @@ func Default(target *prog.Target) (*ipc.Config, *ipc.ExecOpts, error) {
 	}
 	if *flagDebug {
 		c.Flags |= ipc.FlagDebug
+	}
+	if *flagExtraCover {
+		c.Flags |= ipc.FlagExtraCover
 	}
 	sandboxFlags, err := ipc.SandboxToFlags(*flagSandbox)
 	if err != nil {

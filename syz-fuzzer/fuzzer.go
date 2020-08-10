@@ -150,6 +150,8 @@ func main() {
 	}
 
 	config, execOpts, err := ipcconfig.Default(target)
+	log.Logf(0, "DefaultConfig: ", config.Flags)
+
 	if err != nil {
 		log.Fatalf("failed to create default ipc config: %v", err)
 	}
