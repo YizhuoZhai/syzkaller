@@ -377,6 +377,7 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		return info, nil
 	}
 	info.Extra = convertExtra(extraParts)
+	log.Logf(0, "Inside parseOutput, coverage:  ",info.Extra.Cover )
 	return info, nil
 }
 
