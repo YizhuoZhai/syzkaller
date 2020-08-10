@@ -601,6 +601,12 @@ func makeCommand(pid int, bin []string, config *Config, inFile, outFile *os.File
 	cmd.Env = append(append([]string{}, os.Environ()...), "ASAN_OPTIONS=handle_segv=0 allow_user_segv_handler=1")
 	cmd.Stdin = outrp
 	cmd.Stdout = inwp
+
+	if config.Flags&FlagExtraCover != 0 {
+		log.Logf(0, "FlagExtraCover is set\n")
+	}else{
+		log.Logf(0, "FlagExtraCover is not set\n")
+	}
 	if config.Flags&FlagDebug != 0 {
 		close(c.readDone)
 		cmd.Stderr = os.Stdout
