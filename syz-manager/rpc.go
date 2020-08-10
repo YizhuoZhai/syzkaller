@@ -316,9 +316,7 @@ func (serv *RPCServer) Poll(a *rpctype.PollArgs, r *rpctype.PollRes) error {
 func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFuncs) error {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
-	log.Logf(0, "Inside yizhuo getFuncName")
 	for _, pc := range pcs.Pcs {
-		log.Logf(0, "pc = %d", pc)
 		var newpc uint64 = (0xffffffff00000000 | uint64(pc))
 		pcstr := "0x" + strconv.FormatUint(newpc, 16)
 		log.Logf(0, "yizhuo pcstr:%s", pcstr)
