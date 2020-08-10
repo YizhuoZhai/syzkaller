@@ -295,6 +295,9 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	if opts.Flags&ipc.FlagCollectCover == 0 {
 		log.Logf(0, "FlagCollectCoveryz = =0")
 	}
+	else {
+		log.Logf(0, "FlagCollectCoveryz is enabled")
+	}
 	for _, call := range p.Calls {
 		if !proc.fuzzer.choiceTable.Enabled(call.Meta.ID) {
 			fmt.Printf("executing disabled syscall %v", call.Meta.Name)
