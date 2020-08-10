@@ -342,6 +342,7 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		reply := *(*callReply)(unsafe.Pointer(&out[0]))
 		out = out[unsafe.Sizeof(callReply{}):]
 		var inf *CallInfo
+		log.Logf(0, "reply.index = %d, extraReplyIndex = %d\n", reply.index, extraReplyIndex)
 		if reply.index != extraReplyIndex {
 			if int(reply.index) >= len(info.Calls) {
 				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
