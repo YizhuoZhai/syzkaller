@@ -327,7 +327,7 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 			log.Logf(0, "cmd.Run() failed with ", err)
 			return err
 		}
-		log.Logf(0, "yizhuo getFuncName from rpc:", string(output))
+		log.Logf(0, "yizhuo getFuncName from rpc:%s", string(output))
 
 		//
 		strs := strings.Split(string(output), "\n")
@@ -342,7 +342,7 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 			str = strings.Replace(str, "\n", "", -1)
 			str = strings.Replace(str, "\t", "", -1)
 			str = strings.Replace(str, " ", "", -1)
-			
+
 			log.Logf(0, "yizhuo getFuncName append str:", string(str))
 			res.Fnames = append(res.Fnames, str)
 		}
