@@ -13,11 +13,9 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/hash"
 	"github.com/google/syzkaller/pkg/ipc"
 	"github.com/google/syzkaller/pkg/log"
-	"github.com/google/syzkaller/pkg/rpctype"
 	"github.com/google/syzkaller/pkg/signal"
 	"github.com/google/syzkaller/prog"
 )
@@ -108,9 +106,20 @@ func (proc *Proc) loop() {
 
 func (proc *Proc) triageInput(item *WorkTriage) {
 	log.Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
-
+	//
 	prio := signalPrio(item.p, &item.info, item.call)
 	inputSignal := signal.FromRaw(item.info.Signal, prio)
+
+	data := item.p.Serialize()
+	sig := hash.Hash(data)
+	log.Logf(0, "addInputToCorpus, item.p = ", item.p)
+	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
+
+	if item.flags&ProgSmashed == 0 {
+		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
+	}
+
+	/**********Syzkaller old logic****************
 	newSignal := proc.fuzzer.corpusSignalDiff(inputSignal)
 	if newSignal.Empty() {
 		return
@@ -177,11 +186,13 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		Cover:  inputCover.Serialize(),
 	})
 
+	log.Logf(0, "addInputToCorpus, item.p = ", item.p)
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
 	}
+	**********Syzkaller old logic*****************/
 }
 
 func reexecutionSuccess(info *ipc.ProgInfo, oldInfo *ipc.CallInfo, call int) bool {
@@ -254,14 +265,13 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 	})
 }
 //Function exectute: syz-fuzzer transfer the input to syz-executor and execute the program
-//execOpts:
-//p:
-//flags:
+//execOpts:With coverage info,... etc.
+//p:The process for fuzzing different program
+//flags:Normal program, smash program or minimize program
 //stat:
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
 	log.Logf(0, "Inside execute, flags = %d\n", flags)
 	info := proc.executeRaw(execOpts, p, stat)
-	log.Logf(0, "Info.Extra.Cover = ", info.Extra.Cover)
 
 	calls, extra := proc.fuzzer.checkNewSignal(p, info)
 	for _, callIndex := range calls {
@@ -312,7 +322,7 @@ func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.P
 	for try := 0; ; try++ {
 		atomic.AddUint64(&proc.fuzzer.stats[stat], 1)
 		output, info, hanged, err := proc.env.Exec(opts, p)
-		log.Logf (0, "ExecuteRaw Info Cover: ", info.Calls)
+		//log.Logf (0, "ExecuteRaw Info Cover: ", info.Calls)
 		if err != nil {
 			if try > 10 {
 				log.Fatalf("executor %v failed %v times:\n%v", proc.pid, try, err)
