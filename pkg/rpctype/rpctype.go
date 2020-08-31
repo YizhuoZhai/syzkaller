@@ -138,3 +138,9 @@ type CoverFuncs struct{
 type FuncList struct {
 	FList []string
 }
+type IndividualCoverFunc struct {
+	Fname string
+}
+type IndividualCoverAddr struct {
+	Pc uint32
+}

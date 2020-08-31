@@ -20,6 +20,7 @@ import (
 	"github.com/google/syzkaller/pkg/cover"
 	"github.com/google/syzkaller/pkg/osutil"
 	"github.com/google/syzkaller/pkg/signal"
+	//"github.com/google/syzkaller/pkg/funcs"
 	"github.com/google/syzkaller/prog"
 	"github.com/google/syzkaller/sys/targets"
 )
@@ -89,6 +90,7 @@ const (
 type CallInfo struct {
 	Flags  CallFlags
 	Signal []uint32 // feedback signal, filled if FlagSignal is set
+	Funcs	[]string //feedback funcs
 	Cover  []uint32 // per-call coverage, filled if FlagSignal is set and cover == true,
 	// if dedup == false, then cov effectively contains a trace, otherwise duplicates are removed
 	Comps prog.CompMap // per-call comparison operands
@@ -250,7 +252,7 @@ var rateLimit = time.NewTicker(1 * time.Second)
 // hanged: program hanged and was killed
 // err0: failed to start the process or bug in executor itself.
 func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInfo, hanged bool, err0 error) {
-	log.Logf(0, "Inside Exec, p: ", p)
+	//log.Logf(0, "Inside Exec, p: ", p)
 
 	// Copy-in serialized program.
 	progSize, err := p.SerializeForExec(env.in)
@@ -282,7 +284,7 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 			return
 		}
 	}
-	log.Logf(0, "Inside Exec, opts = ", opts)
+	//log.Logf(0, "Inside Exec, opts = ", opts)
 	output, hanged, err0 = env.cmd.exec(opts, progData)
 	if err0 != nil {
 		env.cmd.close()
@@ -291,11 +293,8 @@ func (env *Env) Exec(opts *ExecOpts, p *prog.Prog) (output []byte, info *ProgInf
 	}
 
 	info, err0 = env.parseOutput(p)
-	log.Logf(0, "Info.coverage inside Exec1:", info.Extra.Cover)
-
 
 	if info != nil && env.config.Flags&FlagSignal == 0 {
-		log.Logf(0, "Call addFallbackSignal\n")
 		addFallbackSignal(p, info)
 	}
 	if !env.config.UseForkServer {
@@ -343,7 +342,7 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		reply := *(*callReply)(unsafe.Pointer(&out[0]))
 		out = out[unsafe.Sizeof(callReply{}):]
 		var inf *CallInfo
-		log.Logf(0, "reply.index = %d, extraReplyIndex = %d\n", reply.index, extraReplyIndex)
+		//log.Logf(0, "reply.index = %d, extraReplyIndex = %d\n", reply.index, extraReplyIndex)
 		if reply.index != extraReplyIndex {
 			if int(reply.index) >= len(info.Calls) {
 				return nil, fmt.Errorf("bad call %v index %v/%v", i, reply.index, len(info.Calls))
@@ -376,11 +375,11 @@ func (env *Env) parseOutput(p *prog.Prog) (*ProgInfo, error) {
 		inf.Comps = comps
 	}
 	if len(extraParts) == 0 {
-		log.Logf(0, "Inside parseOutput,ExtraParts = 0")
+		//log.Logf(0, "Inside parseOutput,ExtraParts = 0")
 		return info, nil
 	}
 	info.Extra = convertExtra(extraParts)
-	log.Logf(0, "Inside parseOutput, coverage:  ",info.Extra.Cover )
+	//log.Logf(0, "Inside parseOutput, coverage:  ",info.Extra.Cover )
 	return info, nil
 }
 
@@ -730,7 +729,6 @@ func (c *command) wait() error {
 }
 
 func (c *command) exec(opts *ExecOpts, progData []byte) (output []byte, hanged bool, err0 error) {
-	log.Logf(0, "Inside exec, opts.Flags = %d", opts.Flags)
 	req := &executeReq{
 		magic:     inMagic,
 		envFlags:  uint64(c.config.Flags),

@@ -57,6 +57,7 @@ func FromRaw(raw []uint32, prio uint8) Signal {
 	}
 	s := make(Signal, len(raw))
 	for _, e := range raw {
+		//set the priority for every signal into prio
 		s[elemType(e)] = prioType(prio)
 	}
 	return s

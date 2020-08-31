@@ -6,6 +6,7 @@ package main
 import (
 	"flag"
 	"fmt"
+	"github.com/google/syzkaller/pkg/funcs"
 	"math/rand"
 	"net/http"
 	_ "net/http/pprof"
@@ -47,6 +48,7 @@ type Fuzzer struct {
 
 	faultInjectionEnabled    bool
 	comparisonTracingEnabled bool
+	whiteFuncMap map[string]bool
 
 	corpusMu     sync.RWMutex
 	corpus       []*prog.Prog
@@ -59,9 +61,12 @@ type Fuzzer struct {
 	maxSignal    signal.Signal // max signal ever observed including flakes
 	newSignal    signal.Signal // diff of maxSignal since last sync with master
 
-	logMu sync.Mutex
 	//yizhuo:
-	whiteFuncMap map[string]bool
+	funcsCoveredMu sync.RWMutex
+	funcsCovered map[string]bool
+	corpusFuncs funcs.Funcs
+
+	logMu sync.Mutex
 }
 
 type FuzzerSnapshot struct {
@@ -456,7 +461,7 @@ func (fuzzer *Fuzzer) deserializeInput(inp []byte) *prog.Prog {
 }
 
 func (fuzzer *FuzzerSnapshot) chooseProgram(r *rand.Rand) *prog.Prog {
-	randVal := r.Int63n(fuzzer.sumPrios + 1)
+	randVal := r.Int63n(fuzzer.sumPrios + 1) //func$(input)
 	idx := sort.Search(len(fuzzer.corpusPrios), func(i int) bool {
 		return fuzzer.corpusPrios[i] >= randVal
 	})
@@ -516,7 +521,12 @@ func (fuzzer *Fuzzer) corpusSignalDiff(sign signal.Signal) signal.Signal {
 	defer fuzzer.signalMu.RUnlock()
 	return fuzzer.corpusSignal.Diff(sign)
 }
+func (fuzzer *Fuzzer) corpusFuncsDiff(fun funcs.Funcs) funcs.Funcs{
+	fuzzer.funcsCoveredMu.RLock()
+	defer fuzzer.funcsCoveredMu.RUnlock()
 
+	return fuzzer.corpusFuncs.Diff(fun)
+}
 func (fuzzer *Fuzzer) checkNewSignal(p *prog.Prog, info *ipc.ProgInfo) (calls []int, extra bool) {
 	fuzzer.signalMu.RLock()
 	defer fuzzer.signalMu.RUnlock()
@@ -546,10 +556,13 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	}
 
 	for _, fname := range r.Fnames {
-		log.Logf(1, "funcName = %s", fname)
+		//log.Logf(1, "funcName = %s", fname)
 		if fuzzer.whiteFuncMap[fname] {
+			if (fuzzer.funcsCovered[fname]) {
+				continue
+			}
 			interestInput = true
-			break
+			fuzzer.funcsCovered[fname] = true
 		}
 	}
 

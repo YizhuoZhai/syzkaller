@@ -6,6 +6,10 @@ package main
 import (
 	"bytes"
 	"fmt"
+	"github.com/google/syzkaller/pkg/cover"
+	"github.com/google/syzkaller/pkg/fcover"
+	"github.com/google/syzkaller/pkg/funcs"
+	"github.com/google/syzkaller/pkg/rpctype"
 	"math/rand"
 	"os"
 	"runtime/debug"
@@ -72,9 +76,6 @@ func (proc *Proc) loop() {
 			case *WorkTriage:
 				proc.triageInput(item)
 			case *WorkCandidate:
-				log.Logf(0, "work candidate: ", item.p, item.flags)
-				log.Logf(0, "proc.execOpts: ", proc.execOpts.Flags)
-				log.Logf(0, "execOptCover.flags: ", proc.execOptsCover.Flags)
 				proc.execute(proc.execOptsCover, item.p, item.flags, StatCandidate)
 				//proc.execute(proc.execOpts, item.p, item.flags, StatCandidate)
 			case *WorkSmash:
@@ -106,20 +107,106 @@ func (proc *Proc) loop() {
 
 func (proc *Proc) triageInput(item *WorkTriage) {
 	log.Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
-	//
+	//get the functions covered in this proc
+	var funcList []string
+	for _, ele := range item.info.Cover {
+		r := &rpctype.IndividualCoverFunc{}
+		a := &rpctype.IndividualCoverAddr{
+			Pc: ele,
+		}
+		if err := proc.fuzzer.manager.Call("Manager.GetIndividualFuncName", a, r); err != nil {
+			funcList = append(funcList, r.Fname)
+		}
+	}
+	//Get the priority for this syscall.
 	prio := signalPrio(item.p, &item.info, item.call)
 	inputSignal := signal.FromRaw(item.info.Signal, prio)
+	inputFuncs := funcs.FromRaw(funcList, prio)
+	newFuncs := proc.fuzzer.corpusFuncsDiff(inputFuncs)
+
+	if newFuncs.Empty() {
+		proc.triageSignalInput(item)
+	}
+	callName := ".extra"
+	logCallName := "extra"
+	if item.call != -1 {
+		callName = item.p.Calls[item.call].Meta.Name
+		logCallName = fmt.Sprintf("call #%v %v", item.call, callName)
+	}
+	log.Logf(3, "triaging input for %v (new signal=%v)", logCallName, newFuncs.Len())
+
+	var inputCoverFuncs fcover.Fcover
+	var inputCover cover.Cover
+	const (
+		funcRuns = 3
+		minimizeAttempts = 3
+	)
+	// Compute input covered funcs and non-flaky new funcs for minimization.
+	notexecuted := 0
+	for i := 0; i < funcRuns; i++ {
+		info := proc.executeRaw(proc.execOptsCover, item.p, StatTriage)
+		if !reexecutionSuccess(info, &item.info, item.call) {
+			notexecuted++
+			if notexecuted > funcRuns/2+1 {
+				proc.triageSignalInput(item)
+				return // if happens too often, give up
+			}
+			continue
+		}
+		thisFuncs, thisCoverdFuncs := getFuncsAndCoverdFuncs(item.p, info, item.call)
+		_, thisCover := getSignalAndCover(item.p, info, item.call)
+
+		newFuncs = newFuncs.Intersection(thisFuncs)
+
+		if newFuncs.Empty() && item.flags&ProgMinimized == 0 {
+			return
+		}
+		inputCoverFuncs.Merge(thisCoverdFuncs)
+		inputCover.Merge(thisCover)
+	}
+
+	if item.flags&ProgMinimized == 0 {
+		item.p, item.call = prog.Minimize(item.p, item.call, false,
+			func(p1 *prog.Prog, call1 int) bool {
+				for i := 0; i < minimizeAttempts; i++ {
+					info := proc.execute(proc.execOptsNoCollide, p1, ProgNormal, StatMinimize)
+					if !reexecutionSuccess(info, &item.info, call1) {
+						// The call was not executed or failed.
+						continue
+					}
+					thisFuncs, _ := getFuncsAndCoverdFuncs(p1, info, call1)
+					//thisFuncs := getFuncs(proc, info, item.call)
+					if newFuncs.Intersection(thisFuncs).Len() == newFuncs.Len() {
+						return true
+					}
+				}
+				return false
+			})
+	}
 
 	data := item.p.Serialize()
 	sig := hash.Hash(data)
 	log.Logf(0, "addInputToCorpus, item.p = ", item.p)
+	proc.fuzzer.sendInputToManager(rpctype.RPCInput{
+		Call:   callName,
+		Prog:   data,
+		Signal: inputSignal.Serialize(),
+		Cover:  inputCover.Serialize(),
+	})
+
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
 	}
+}
 
-	/**********Syzkaller old logic****************
+
+func (proc *Proc) triageSignalInput(item *WorkTriage) {
+	log.Logf(1, "#%v: triaging type=%x", proc.pid, item.flags)
+
+	prio := signalPrio(item.p, &item.info, item.call)
+	inputSignal := signal.FromRaw(item.info.Signal, prio)
 	newSignal := proc.fuzzer.corpusSignalDiff(inputSignal)
 	if newSignal.Empty() {
 		return
@@ -186,15 +273,25 @@ func (proc *Proc) triageInput(item *WorkTriage) {
 		Cover:  inputCover.Serialize(),
 	})
 
-	log.Logf(0, "addInputToCorpus, item.p = ", item.p)
 	proc.fuzzer.addInputToCorpus(item.p, inputSignal, sig)
 
 	if item.flags&ProgSmashed == 0 {
 		proc.fuzzer.workQueue.enqueue(&WorkSmash{item.p, item.call})
 	}
-	**********Syzkaller old logic*****************/
 }
-
+func strIntersection (str1 []string, str2 []string) []string {
+	var ans []string
+	var strMap map[string]bool
+	for _, ele := range str1 {
+		strMap[ele] = true
+	}
+	for _, e := range str2 {
+		if strMap[e] {
+			ans = append(ans, e)
+		}
+	}
+	return ans
+}
 func reexecutionSuccess(info *ipc.ProgInfo, oldInfo *ipc.CallInfo, call int) bool {
 	if info == nil || len(info.Calls) == 0 {
 		return false
@@ -209,7 +306,6 @@ func reexecutionSuccess(info *ipc.ProgInfo, oldInfo *ipc.CallInfo, call int) boo
 	}
 	return len(info.Extra.Signal) != 0
 }
-
 func getSignalAndCover(p *prog.Prog, info *ipc.ProgInfo, call int) (signal.Signal, []uint32) {
 	inf := &info.Extra
 	if call != -1 {
@@ -217,7 +313,34 @@ func getSignalAndCover(p *prog.Prog, info *ipc.ProgInfo, call int) (signal.Signa
 	}
 	return signal.FromRaw(inf.Signal, signalPrio(p, inf, call)), inf.Cover
 }
+func getFuncsAndCoverdFuncs(p *prog.Prog, info *ipc.ProgInfo, call int) (funcs.Funcs, []string) {
+	inf := &info.Extra
+	if call != -1 {
+		inf = &info.Calls[call]
+	}
 
+	//Todo here:inf.Funcs needs to be filled
+	return funcs.FromRaw(inf.Funcs, signalPrio(p, inf, call)), inf.Funcs
+}
+
+func getFuncs(proc *Proc, info *ipc.ProgInfo, call int) []string {
+	inf := &info.Extra
+	if call != -1 {
+		inf = &info.Calls[call]
+	}
+	var fs []string
+
+	for _, f := range inf.Cover {
+		r := &rpctype.IndividualCoverFunc{}
+		a := &rpctype.IndividualCoverAddr{
+			Pc: f,
+		}
+		if err := proc.fuzzer.manager.Call("Manager.GetIndividualFuncName", a, r); err != nil {
+			fs = append(fs, r.Fname)
+		}
+	}
+	return fs
+}
 func (proc *Proc) smashInput(item *WorkSmash) {
 	if proc.fuzzer.faultInjectionEnabled && item.call != -1 {
 		proc.failCall(item.p, item.call)
@@ -270,7 +393,7 @@ func (proc *Proc) executeHintSeed(p *prog.Prog, call int) {
 //flags:Normal program, smash program or minimize program
 //stat:
 func (proc *Proc) execute(execOpts *ipc.ExecOpts, p *prog.Prog, flags ProgTypes, stat Stat) *ipc.ProgInfo {
-	log.Logf(0, "Inside execute, flags = %d\n", flags)
+	//log.Logf(0, "Inside execute, flags = %d\n", flags)
 	info := proc.executeRaw(execOpts, p, stat)
 
 	calls, extra := proc.fuzzer.checkNewSignal(p, info)
@@ -298,7 +421,7 @@ func (proc *Proc) enqueueCallTriage(p *prog.Prog, flags ProgTypes, callIndex int
 }
 
 func (proc *Proc) executeRaw(opts *ipc.ExecOpts, p *prog.Prog, stat Stat) *ipc.ProgInfo {
-	log.Logf(0, "Inside executeRaw, opts.Flags = %d， ipc.FlagDedupCover = %d\n", opts.Flags, ipc.FlagDedupCover)
+	//log.Logf(0, "Inside executeRaw, opts.Flags = %d， ipc.FlagDedupCover = %d\n", opts.Flags, ipc.FlagDedupCover)
 	if opts.Flags&ipc.FlagDedupCover == 0 {
 		log.Fatalf("dedup cover is not enabled")
 	}

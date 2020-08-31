@@ -319,7 +319,7 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 	for _, pc := range pcs.Pcs {
 		var newpc uint64 = (0xffffffff00000000 | uint64(pc))
 		pcstr := "0x" + strconv.FormatUint(newpc, 16)
-		log.Logf(0, "yizhuo pcstr:%s", pcstr)
+		//log.Logf(1, "yizhuo pcstr:%s", pcstr)
 		addr2line := "addr2line"
 		cmd := exec.Command(addr2line, "-afi", "-e", "/home/lll-56/vmlinux", pcstr)
 		output, err := cmd.CombinedOutput()
@@ -327,12 +327,12 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 			log.Logf(0, "cmd.Run() failed with ", err)
 			return err
 		}
-		log.Logf(0, "yizhuo getFuncName from rpc:%s", string(output))
+		//log.Logf(0, "yizhuo getFuncName from rpc:%s", string(output))
 
 		//
 		strs := strings.Split(string(output), "\n")
 		for _, str := range strs{
-			log.Logf(0, "yizhuo getFuncName str:", string(str))
+			//log.Logf(0, "yizhuo getFuncName str:", string(str))
 			if strings.Contains(str, "0x") {
 				continue
 			}
@@ -343,18 +343,60 @@ func (serv *RPCServer) GetFuncName (pcs *rpctype.CoverAddr, res *rpctype.CoverFu
 			str = strings.Replace(str, "\t", "", -1)
 			str = strings.Replace(str, " ", "", -1)
 
-			log.Logf(0, "yizhuo getFuncName append str:", string(str))
-			res.Fnames = append(res.Fnames, str)
+			//log.Logf(0, "yizhuo getFuncName append str:", string(str))
+			if len(str) > 0{
+				res.Fnames = append(res.Fnames, str)
+			}
+
 		}
 		//res.Fnames = append(res.Fnames, string(output))
 	}
+	return nil
+}
+func (serv *RPCServer) GetIndividualFuncName (pc *rpctype.IndividualCoverAddr, res *rpctype.IndividualCoverFunc) error {
+	serv.mu.Lock()
+	defer serv.mu.Unlock()
+
+	var newpc uint64 = (0xffffffff00000000 | uint64(pc.Pc))
+	pcstr := "0x" + strconv.FormatUint(newpc, 16)
+	//log.Logf(1, "yizhuo pcstr:%s", pcstr)
+	addr2line := "addr2line"
+	cmd := exec.Command(addr2line, "-afi", "-e", "/home/lll-56/vmlinux", pcstr)
+	output, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Logf(0, "cmd.Run() failed with ", err)
+		return err
+	}
+	//log.Logf(0, "yizhuo getFuncName from rpc:%s", string(output))
+
+	//
+	strs := strings.Split(string(output), "\n")
+	for _, str := range strs{
+		//log.Logf(0, "yizhuo getFuncName str:", string(str))
+		if strings.Contains(str, "0x") {
+			continue
+		}
+		if strings.Contains(str, "/") {
+			continue
+		}
+		str = strings.Replace(str, "\n", "", -1)
+		str = strings.Replace(str, "\t", "", -1)
+		str = strings.Replace(str, " ", "", -1)
+
+		//log.Logf(0, "yizhuo getFuncName append str:", string(str))
+		if len(str) > 0{
+			res.Fname = str
+		}
+
+	}
+
 	return nil
 }
 func (serv *RPCServer) GetBugFuncs (pcs *rpctype.CoverAddr, res *rpctype.FuncList) error {
 	serv.mu.Lock()
 	defer serv.mu.Unlock()
 
-	log.Logf(0, "Inside Yizhuo getBugFuncs\n")
+	//log.Logf(0, "Inside Yizhuo getBugFuncs\n")
 	f, err := os.Open("/home/lll-56/bug.funcs")
 	defer f.Close()
 	if err != nil {
