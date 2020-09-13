@@ -558,9 +558,10 @@ func (fuzzer *Fuzzer) checkNewCallSignal(p *prog.Prog, info *ipc.CallInfo, call 
 	for _, fname := range r.Fnames {
 		//log.Logf(1, "funcName = %s", fname)
 		if fuzzer.whiteFuncMap[fname] {
-			if (fuzzer.funcsCovered[fname]) {
+			/*if (fuzzer.funcsCovered[fname]) {
 				continue
-			}
+			}*/
+
 			interestInput = true
 			fuzzer.funcsCovered[fname] = true
 		}
